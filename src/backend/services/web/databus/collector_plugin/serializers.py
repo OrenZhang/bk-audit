@@ -16,7 +16,7 @@ We undertake not to change the open source license (MIT license) applicable
 to the current version of the project delivered to anyone in the future.
 """
 
-from django.utils.translation import gettext_lazy
+from django.utils.translation import gettext_lazy, gettext
 from rest_framework import serializers
 
 from services.web.databus.constants import (
@@ -58,12 +58,14 @@ class PluginConditionSerializer(serializers.Serializer):
     separator_filters = PluginConditionSeparatorFiltersSerializer(label=gettext_lazy("过滤规则"), required=False, many=True)
 
     def validate(self, attrs):
-        if attrs["type"] == CollectorParamConditionTypeEnum.MATCH.value:
-            attrs.pop("separator", None)
-            attrs.pop("separator_filters", None)
-        elif attrs["type"] == CollectorParamConditionTypeEnum.SEPARATOR.value:
-            attrs.pop("match_type", None)
-            attrs.pop("match_content", None)
+        attrs = super().validate(attrs)
+
+        condition_type = attrs["type"]
+        separator_filters = attrs["separator_filters"] if "separator_filters" in attrs else []
+        separator_str = attrs["separator"] if "separator" in attrs else ""
+        if condition_type == "separator" and separator_filters and len(separator_str) == 0:
+            raise serializers.ValidationError(gettext("过滤分隔符不能为空"))
+
         return attrs
 
 
